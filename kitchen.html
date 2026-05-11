@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hotel Sarvottam — Kitchen Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0c0f;
+    --surface: #111418;
+    --card: #171b21;
+    --card2: #1e232b;
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.12);
+    --text: #e8edf5;
+    --muted: #6b7585;
+    --gold: #f0b429;
+    --gold-dim: rgba(240,180,41,0.12);
+    --new: #3b82f6;
+    --new-bg: rgba(59,130,246,0.12);
+    --prep: #f59e0b;
+    --prep-bg: rgba(245,158,11,0.12);
+    --ready: #22c55e;
+    --ready-bg: rgba(34,197,94,0.12);
+    --danger: #ef4444;
+    --danger-bg: rgba(239,68,68,0.1);
+    --sidebar: 220px;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    display: flex;
+  }
+
+  /* ── Sidebar ── */
+  .sidebar {
+    width: var(--sidebar);
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex; flex-direction: column;
+    position: fixed; top:0; left:0; bottom:0;
+    z-index: 50;
+  }
+  .sidebar-brand {
+    padding: 1.4rem 1.2rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .sidebar-brand h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1rem; color: var(--gold);
+    line-height: 1.2;
+  }
+  .sidebar-brand p { font-size: 0.7rem; color: var(--muted); margin-top: 2px; }
+
+  .live-indicator {
+    display: flex; align-items: center; gap: 6px;
+    margin-top: 10px; font-size: 0.72rem; color: var(--ready);
+  }
+  .live-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--ready); animation: blink 1.5s infinite;
+  }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  .sidebar-nav { padding: 1rem 0.6rem; flex:1; }
+  .nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 12px; border-radius: 8px;
+    color: var(--muted); font-size: 0.85rem;
+    cursor: pointer; transition: all 0.15s; margin-bottom: 2px;
+    border: none; background: transparent; width: 100%; text-align: left;
+  }
+  .nav-item:hover { background: var(--card2); color: var(--text); }
+  .nav-item.active { background: var(--gold-dim); color: var(--gold); }
+  .nav-icon { font-size: 1rem; width: 20px; text-align: center; }
+  .nav-badge {
+    margin-left: auto; background: var(--new);
+    color: white; border-radius: 100px; font-size: 0.65rem;
+    padding: 2px 7px; font-weight: 600;
+  }
+  .nav-badge.gold { background: var(--gold); color: #000; }
+
+  .sidebar-footer {
+    padding: 1rem;
+    border-top: 1px solid var(--border);
+    font-size: 0.72rem; color: var(--muted);
+  }
+  .clock { font-family: 'DM Mono', monospace; font-size: 1rem; color: var(--text); }
+
+  /* ── Main ── */
+  .main {
+    margin-left: var(--sidebar);
+    flex: 1; display: flex; flex-direction: column;
+    min-height: 100vh;
+  }
+
+  /* ── Top Bar ── */
+  .topbar {
+    padding: 1rem 1.5rem;
+    display: flex; align-items: center; justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    position: sticky; top:0; z-index: 40;
+  }
+  .topbar h2 { font-size: 1rem; font-weight: 500; color: var(--text); }
+  .topbar-right { display: flex; align-items: center; gap: 10px; }
+  .alert-bell {
+    position: relative; font-size: 1.1rem; cursor: pointer;
+    width: 36px; height: 36px; border-radius: 8px;
+    background: var(--card2); display:flex; align-items:center; justify-content:center;
+    border: 1px solid var(--border);
+  }
+  .alert-pip {
+    position: absolute; top:4px; right:4px;
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--danger); border: 2px solid var(--surface);
+  }
+  .staff-badge {
+    display:flex; align-items:center; gap:8px;
+    background: var(--card2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 6px 12px; font-size: 0.8rem;
+  }
+  .staff-avatar {
+    width: 24px; height: 24px; border-radius: 50%;
+    background: var(--gold-dim); color: var(--gold);
+    display:flex; align-items:center; justify-content:center;
+    font-size: 0.7rem; font-weight: 600;
+  }
+
+  /* ── Content ── */
+  .content { padding: 1.5rem; flex:1; }
+
+  /* ── Stat Cards ── */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 1rem; margin-bottom: 1.5rem;
+  }
+  .stat-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px; padding: 1rem 1.2rem;
+    position: relative; overflow: hidden;
+    transition: border-color 0.2s;
+  }
+  .stat-card:hover { border-color: var(--border2); }
+  .stat-card::before {
+    content: ''; position: absolute;
+    top:0; left:0; right:0; height: 2px;
+  }
+  .stat-card.blue::before { background: var(--new); }
+  .stat-card.amber::before { background: var(--prep); }
+  .stat-card.green::before { background: var(--ready); }
+  .stat-card.gold::before { background: var(--gold); }
+
+  .stat-label { font-size: 0.72rem; color: var(--muted); letter-spacing:0.06em; text-transform:uppercase; margin-bottom: 6px; }
+  .stat-value { font-size: 1.8rem; font-weight: 600; line-height: 1; margin-bottom: 4px; }
+  .stat-card.blue .stat-value { color: var(--new); }
+  .stat-card.amber .stat-value { color: var(--prep); }
+  .stat-card.green .stat-value { color: var(--ready); }
+  .stat-card.gold .stat-value { color: var(--gold); }
+  .stat-sub { font-size: 0.72rem; color: var(--muted); }
+  .stat-icon { position: absolute; top: 1rem; right: 1rem; font-size: 1.4rem; opacity: 0.3; }
+
+  /* ── Layout Grid ── */
+  .dashboard-grid {
+    display: grid;
+    grid-template-columns: 1fr 320px;
+    gap: 1.2rem;
+  }
+  @media(max-width:900px){ .dashboard-grid{ grid-template-columns:1fr; } }
+
+  /* ── Orders Panel ── */
+  .panel {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px; overflow: hidden;
+  }
+  .panel-header {
+    padding: 1rem 1.2rem;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .panel-title { font-size: 0.85rem; font-weight: 500; display:flex; align-items:center; gap:8px; }
+  .panel-actions { display:flex; gap:6px; }
+  .filter-btn {
+    padding: 4px 12px; border-radius: 100px; font-size: 0.75rem;
+    border: 1px solid var(--border); background: transparent;
+    color: var(--muted); cursor: pointer; transition: all 0.15s;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .filter-btn.active { border-color: var(--gold); color: var(--gold); background: var(--gold-dim); }
+
+  .orders-list { max-height: 600px; overflow-y: auto; }
+  .orders-list::-webkit-scrollbar { width: 4px; }
+  .orders-list::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+  /* ── Order Card ── */
+  .order-card {
+    padding: 1rem 1.2rem;
+    border-bottom: 1px solid var(--border);
+    transition: background 0.15s;
+    position: relative;
+  }
+  .order-card:hover { background: var(--card2); }
+  .order-card.new-order { animation: slideIn 0.4s ease; }
+  @keyframes slideIn { from{transform:translateY(-10px);opacity:0} to{transform:translateY(0);opacity:1} }
+
+  .order-top {
+    display:flex; align-items:center; justify-content:space-between;
+    margin-bottom: 8px;
+  }
+  .order-meta { display:flex; align-items:center; gap:8px; }
+  .order-id-tag {
+    font-family: 'DM Mono', monospace; font-size: 0.78rem;
+    color: var(--gold); font-weight: 500;
+  }
+  .table-tag {
+    background: var(--card2); border: 1px solid var(--border);
+    border-radius: 100px; padding: 2px 8px;
+    font-size: 0.7rem; color: var(--muted);
+  }
+  .time-tag { font-size: 0.7rem; color: var(--muted); font-family: 'DM Mono', monospace; }
+
+  .status-pill {
+    padding: 3px 10px; border-radius: 100px; font-size: 0.7rem; font-weight: 500;
+    cursor: pointer; transition: all 0.15s; border: none; font-family: 'DM Sans', sans-serif;
+  }
+  .status-pill.new { background: var(--new-bg); color: var(--new); }
+  .status-pill.preparing { background: var(--prep-bg); color: var(--prep); }
+  .status-pill.ready { background: var(--ready-bg); color: var(--ready); }
+  .status-pill.served { background: var(--border); color: var(--muted); }
+
+  .order-items-list { display:flex; flex-wrap:wrap; gap:5px; margin-bottom: 8px; }
+  .order-item-chip {
+    background: var(--card2); border: 1px solid var(--border);
+    border-radius: 6px; padding: 3px 8px;
+    font-size: 0.75rem; color: var(--text);
+    display:flex; align-items:center; gap:4px;
+  }
+  .chip-qty {
+    background: var(--border2); border-radius: 4px;
+    padding: 1px 5px; font-size: 0.68rem; color: var(--muted);
+    font-family: 'DM Mono', monospace;
+  }
+
+  .order-footer { display:flex; align-items:center; justify-content:space-between; }
+  .order-total { font-size: 0.82rem; color: var(--gold); font-weight: 500; }
+  .order-actions { display:flex; gap:5px; }
+  .action-btn {
+    padding: 4px 10px; border-radius: 6px; font-size: 0.72rem;
+    border: 1px solid var(--border); background: transparent;
+    color: var(--muted); cursor: pointer; transition: all 0.15s;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .action-btn:hover { border-color: var(--border2); color: var(--text); }
+  .action-btn.primary { border-color: var(--gold); color: var(--gold); }
+  .action-btn.primary:hover { background: var(--gold-dim); }
+  .action-btn.success { border-color: var(--ready); color: var(--ready); }
+  .action-btn.danger { border-color: var(--danger); color: var(--danger); }
+
+  .special-note {
+    background: var(--gold-dim); border-left: 2px solid var(--gold);
+    border-radius: 0 6px 6px 0; padding: 4px 8px;
+    font-size: 0.72rem; color: var(--gold); margin-bottom: 8px;
+  }
+
+  /* ── Right Column ── */
+  .right-col { display:flex; flex-direction:column; gap:1.2rem; }
+
+  /* ── Table Map ── */
+  .table-grid {
+    display: grid; grid-template-columns: repeat(3,1fr); gap: 8px;
+    padding: 1.2rem;
+  }
+  .table-cell {
+    aspect-ratio: 1; border-radius: 10px;
+    border: 1px solid var(--border);
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    font-size: 0.7rem; color: var(--muted); cursor: pointer;
+    transition: all 0.2s; background: var(--card2);
+    position: relative;
+  }
+  .table-cell:hover { border-color: var(--border2); }
+  .table-cell.occupied { border-color: rgba(240,180,41,0.4); background: var(--gold-dim); color: var(--gold); }
+  .table-cell.busy { border-color: rgba(245,158,11,0.4); background: var(--prep-bg); color: var(--prep); }
+  .table-cell.ready { border-color: rgba(34,197,94,0.4); background: var(--ready-bg); color: var(--ready); }
+  .table-num { font-size: 1.1rem; font-weight: 600; }
+  .table-status { font-size: 0.6rem; margin-top: 2px; }
+  .table-amt { font-size: 0.65rem; font-family:'DM Mono',monospace; margin-top:1px; }
+
+  /* ── Revenue Chart ── */
+  .revenue-chart { padding: 1.2rem; }
+  .chart-bars {
+    display:flex; align-items:flex-end; gap:6px;
+    height: 80px; margin-top: 10px;
+  }
+  .bar-wrap { flex:1; display:flex; flex-direction:column; align-items:center; gap:4px; }
+  .bar {
+    width: 100%; border-radius: 4px 4px 0 0;
+    background: var(--gold-dim); border: 1px solid rgba(240,180,41,0.3);
+    transition: all 0.3s; cursor: pointer; position: relative;
+  }
+  .bar:hover { background: rgba(240,180,41,0.25); }
+  .bar.today { background: rgba(240,180,41,0.35); border-color: var(--gold); }
+  .bar-label { font-size: 0.6rem; color: var(--muted); }
+
+  /* ── Notification Toast ── */
+  .toasts {
+    position: fixed; top: 1rem; right: 1rem; z-index: 999;
+    display:flex; flex-direction:column; gap:8px;
+  }
+  .toast {
+    background: var(--card2); border: 1px solid var(--border2);
+    border-radius: 10px; padding: 10px 14px;
+    display:flex; align-items:center; gap:10px;
+    font-size: 0.82rem; min-width: 260px;
+    animation: toastIn 0.3s ease;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+  }
+  @keyframes toastIn { from{transform:translateX(20px);opacity:0} to{transform:translateX(0);opacity:1} }
+  .toast-icon { font-size: 1.1rem; }
+  .toast-text { flex:1; }
+  .toast-title { font-weight: 500; color: var(--text); }
+  .toast-sub { font-size: 0.72rem; color: var(--muted); }
+  .toast-close { color: var(--muted); cursor:pointer; font-size:0.9rem; }
+
+  /* ── KDS View ── */
+  .kds-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px,1fr));
+    gap: 1rem;
+  }
+  .kds-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 12px; overflow: hidden;
+  }
+  .kds-header {
+    padding: 10px 14px; display:flex; align-items:center; justify-content:space-between;
+    font-size: 0.82rem; font-weight: 500;
+  }
+  .kds-card.kds-new .kds-header { background: var(--new-bg); color: var(--new); }
+  .kds-card.kds-prep .kds-header { background: var(--prep-bg); color: var(--prep); }
+  .kds-card.kds-ready .kds-header { background: var(--ready-bg); color: var(--ready); }
+  .kds-items { padding: 10px 14px; }
+  .kds-item {
+    display:flex; align-items:center; justify-content:space-between;
+    padding: 6px 0; border-bottom: 1px solid var(--border);
+    font-size: 0.82rem;
+  }
+  .kds-item:last-child { border-bottom: none; }
+  .kds-item-name { display:flex; align-items:center; gap:6px; }
+  .kds-qty { font-family:'DM Mono',monospace; font-size:0.75rem; color:var(--muted); }
+  .kds-timer {
+    font-family:'DM Mono',monospace; font-size:0.78rem; padding: 10px 14px;
+    border-top: 1px solid var(--border); color: var(--muted);
+    display:flex; align-items:center; justify-content:space-between;
+  }
+  .kds-timer.urgent { color: var(--danger); }
+
+  /* Tabs */
+  .view-tabs { display:flex; gap:4px; padding: 0 1.5rem 1rem; }
+  .view-tab {
+    padding: 6px 16px; border-radius: 8px; font-size: 0.82rem;
+    border: 1px solid var(--border); background: transparent;
+    color: var(--muted); cursor: pointer; transition: all 0.15s;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .view-tab.active { background: var(--card2); color: var(--text); border-color: var(--border2); }
+
+  .view { display:none; }
+  .view.active { display:block; }
+</style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<aside class="sidebar">
+  <div class="sidebar-brand">
+    <h1>Hotel Sarvottam</h1>
+    <p>Kitchen Dashboard</p>
+    <div class="live-indicator">
+      <div class="live-dot"></div> Live · Auto-refresh
+    </div>
+  </div>
+
+  <nav class="sidebar-nav">
+    <button class="nav-item active" onclick="switchTab('orders',this)">
+      <span class="nav-icon">📋</span> Live Orders
+      <span class="nav-badge" id="newOrderBadge">3</span>
+    </button>
+    <button class="nav-item" onclick="switchTab('kds',this)">
+      <span class="nav-icon">👨‍🍳</span> Kitchen Display
+    </button>
+    <button class="nav-item" onclick="switchTab('tables',this)">
+      <span class="nav-icon">🪑</span> Table View
+    </button>
+    <button class="nav-item" onclick="switchTab('revenue',this)">
+      <span class="nav-icon">💰</span> Revenue
+      <span class="nav-badge gold">Today</span>
+    </button>
+  </nav>
+
+  <div class="sidebar-footer">
+    <div class="clock" id="clock">--:--:--</div>
+    <div style="margin-top:4px">Monday · Dinner Service</div>
+  </div>
+</aside>
+
+<!-- Main -->
+<div class="main">
+  <div class="topbar">
+    <h2 id="topbarTitle">Live Orders</h2>
+    <div class="topbar-right">
+      <div class="alert-bell" onclick="showToast()">
+        🔔
+        <div class="alert-pip"></div>
+      </div>
+      <div class="staff-badge">
+        <div class="staff-avatar">RK</div>
+        <span>Rajan Kumar</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stat Cards -->
+  <div class="content">
+    <div class="stats-row">
+      <div class="stat-card blue">
+        <div class="stat-icon">🆕</div>
+        <div class="stat-label">New Orders</div>
+        <div class="stat-value" id="statNew">3</div>
+        <div class="stat-sub">Awaiting kitchen</div>
+      </div>
+      <div class="stat-card amber">
+        <div class="stat-icon">🔥</div>
+        <div class="stat-label">Preparing</div>
+        <div class="stat-value" id="statPrep">2</div>
+        <div class="stat-sub">In progress</div>
+      </div>
+      <div class="stat-card green">
+        <div class="stat-icon">✅</div>
+        <div class="stat-label">Ready</div>
+        <div class="stat-value" id="statReady">1</div>
+        <div class="stat-sub">Serve now</div>
+      </div>
+      <div class="stat-card gold">
+        <div class="stat-icon">₹</div>
+        <div class="stat-label">Today's Revenue</div>
+        <div class="stat-value" id="statRev">₹12,840</div>
+        <div class="stat-sub">↑ 18% vs yesterday</div>
+      </div>
+    </div>
+
+    <!-- View Tabs -->
+    <div class="view-tabs">
+      <button class="view-tab active" id="tab-orders" onclick="switchView('orders')">📋 Orders</button>
+      <button class="view-tab" id="tab-kds" onclick="switchView('kds')">👨‍🍳 Kitchen Display</button>
+      <button class="view-tab" id="tab-tables" onclick="switchView('tables')">🪑 Tables</button>
+      <button class="view-tab" id="tab-revenue" onclick="switchView('revenue')">💰 Revenue</button>
+    </div>
+
+    <!-- ORDERS VIEW -->
+    <div class="view active" id="view-orders">
+      <div class="dashboard-grid">
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">📋 Incoming Orders <span style="color:var(--muted);font-weight:400;font-size:0.78rem">(6 total)</span></div>
+            <div class="panel-actions">
+              <button class="filter-btn active" onclick="filterOrders('all',this)">All</button>
+              <button class="filter-btn" onclick="filterOrders('new',this)">New</button>
+              <button class="filter-btn" onclick="filterOrders('preparing',this)">Preparing</button>
+              <button class="filter-btn" onclick="filterOrders('ready',this)">Ready</button>
+            </div>
+          </div>
+          <div class="orders-list" id="ordersList"></div>
+        </div>
+
+        <div class="right-col">
+          <!-- Table Map -->
+          <div class="panel">
+            <div class="panel-header">
+              <div class="panel-title">🪑 Table Status</div>
+            </div>
+            <div class="table-grid" id="tableGrid"></div>
+          </div>
+
+          <!-- Quick Revenue -->
+          <div class="panel">
+            <div class="panel-header">
+              <div class="panel-title">💰 Today's Revenue</div>
+            </div>
+            <div class="revenue-chart" id="miniRevenue"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- KDS VIEW -->
+    <div class="view" id="view-kds">
+      <div class="kds-grid" id="kdsGrid"></div>
+    </div>
+
+    <!-- TABLES VIEW -->
+    <div class="view" id="view-tables">
+      <div class="panel">
+        <div class="panel-header"><div class="panel-title">🪑 All Tables — Live Status</div></div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;padding:1.2rem;" id="fullTableGrid"></div>
+      </div>
+    </div>
+
+    <!-- REVENUE VIEW -->
+    <div class="view" id="view-revenue">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.2rem;">
+        <div class="panel">
+          <div class="panel-header"><div class="panel-title">📊 Hourly Revenue Today</div></div>
+          <div style="padding:1.2rem" id="fullRevenueChart"></div>
+        </div>
+        <div class="panel">
+          <div class="panel-header"><div class="panel-title">🏆 Top Selling Items</div></div>
+          <div style="padding:1.2rem" id="topItems"></div>
+        </div>
+      </div>
+      <div class="panel" style="margin-top:1.2rem">
+        <div class="panel-header"><div class="panel-title">📅 Revenue This Week</div></div>
+        <div style="padding:1.2rem" id="weekRevenue"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Toasts -->
+<div class="toasts" id="toasts"></div>
+
+<script>
+// ── Data ──
+let orders = [
+  { id:'SRV-1042', table:3, status:'new', time: Date.now()-240000, items:[{emoji:'🧀',name:'Paneer Tikka',qty:2},{emoji:'🫓',name:'Garlic Naan',qty:4},{emoji:'🫘',name:'Dal Makhani',qty:1}], total:1060, note:'Less spicy please' },
+  { id:'SRV-1041', table:7, status:'new', time: Date.now()-480000, items:[{emoji:'🍗',name:'Chicken Biryani',qty:2},{emoji:'🥛',name:'Mango Lassi',qty:2}], total:920, note:'' },
+  { id:'SRV-1040', table:12, status:'new', time: Date.now()-600000, items:[{emoji:'🍛',name:'Butter Chicken',qty:1},{emoji:'🍖',name:'Kadhai Gosht',qty:1},{emoji:'🫓',name:'Butter Naan',qty:3}], total:980, note:'Extra roti on side' },
+  { id:'SRV-1039', table:5, status:'preparing', time: Date.now()-900000, items:[{emoji:'🥢',name:'Veg Spring Rolls',qty:2},{emoji:'🍚',name:'Veg Dum Biryani',qty:1},{emoji:'☕',name:'Masala Chai',qty:2}], total:700, note:'' },
+  { id:'SRV-1038', table:9, status:'preparing', time: Date.now()-1200000, items:[{emoji:'🦐',name:'Tandoori Prawns',qty:1},{emoji:'🐟',name:'Fish Curry',qty:1},{emoji:'🍚',name:'Steamed Basmati',qty:2}], total:1020, note:'Allergy: nuts' },
+  { id:'SRV-1037', table:2, status:'ready', time: Date.now()-1800000, items:[{emoji:'🍯',name:'Gulab Jamun',qty:3},{emoji:'🍨',name:'Kulfi Falooda',qty:2}], total:680, note:'' },
+];
+
+const tables = [
+  {num:1,status:'free'},{num:2,status:'ready',amount:680},{num:3,status:'occupied',amount:1060},
+  {num:4,status:'free'},{num:5,status:'busy',amount:700},{num:6,status:'free'},
+  {num:7,status:'occupied',amount:920},{num:8,status:'free'},{num:9,status:'busy',amount:1020},
+  {num:10,status:'free'},{num:11,status:'free'},{num:12,status:'occupied',amount:980},
+];
+
+const hourlyRevenue = [0,0,0,0,0,0,420,880,1240,1680,2100,1560,1980,1420,1240,980,1560,2100,2400,1980,1440,860,600,280];
+const weekDays = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+const weekRevenue = [8420,9100,7650,11200,10800,14600,12840];
+const topItemsData = [
+  {emoji:'🍗',name:'Chicken Biryani',count:28,rev:10080},
+  {emoji:'🍛',name:'Butter Chicken',count:24,rev:8160},
+  {emoji:'🧀',name:'Paneer Tikka',count:22,rev:6160},
+  {emoji:'🫓',name:'Garlic Naan',count:41,rev:3280},
+  {emoji:'🫘',name:'Dal Makhani',count:19,rev:4560},
+];
+
+let currentFilter = 'all';
+
+// ── Clock ──
+function updateClock() {
+  const now = new Date();
+  document.getElementById('clock').textContent = now.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+}
+setInterval(updateClock, 1000); updateClock();
+
+// ── Elapsed time ──
+function elapsed(ts) {
+  const m = Math.floor((Date.now()-ts)/60000);
+  if (m<1) return 'just now';
+  if (m<60) return m+'m ago';
+  return Math.floor(m/60)+'h '+m%60+'m ago';
+}
+
+// ── Render Orders ──
+function renderOrders() {
+  const filtered = currentFilter==='all' ? orders : orders.filter(o=>o.status===currentFilter);
+  const container = document.getElementById('ordersList');
+  if (!filtered.length) {
+    container.innerHTML = '<div style="padding:2rem;text-align:center;color:var(--muted);font-size:0.85rem">No orders in this category</div>';
+    return;
+  }
+  container.innerHTML = filtered.map(o => `
+    <div class="order-card" id="oc-${o.id}">
+      <div class="order-top">
+        <div class="order-meta">
+          <span class="order-id-tag">#${o.id}</span>
+          <span class="table-tag">Table ${o.table}</span>
+          <span class="time-tag">${elapsed(o.time)}</span>
+        </div>
+        <span class="status-pill ${o.status}" onclick="cycleStatus('${o.id}')">${o.status==='new'?'🆕 New':o.status==='preparing'?'🔥 Preparing':o.status==='ready'?'✅ Ready':'🍽️ Served'}</span>
+      </div>
+      ${o.note ? `<div class="special-note">📝 ${o.note}</div>` : ''}
+      <div class="order-items-list">
+        ${o.items.map(i=>`<div class="order-item-chip">${i.emoji} ${i.name} <span class="chip-qty">×${i.qty}</span></div>`).join('')}
+      </div>
+      <div class="order-footer">
+        <div class="order-total">₹${o.total}</div>
+        <div class="order-actions">
+          ${o.status==='new' ? `<button class="action-btn primary" onclick="setStatus('${o.id}','preparing')">Start Preparing</button>` : ''}
+          ${o.status==='preparing' ? `<button class="action-btn success" onclick="setStatus('${o.id}','ready')">Mark Ready</button>` : ''}
+          ${o.status==='ready' ? `<button class="action-btn success" onclick="setStatus('${o.id}','served')">Mark Served</button>` : ''}
+          <button class="action-btn danger" onclick="cancelOrder('${o.id}')">✕</button>
+        </div>
+      </div>
+    </div>
+  `).join('');
+  updateStats();
+}
+
+function setStatus(id, status) {
+  const o = orders.find(x=>x.id===id);
+  if (!o) return;
+  o.status = status;
+  renderOrders();
+  renderKDS();
+  renderTableGrid();
+  const msgs = {preparing:'🔥 Now preparing',ready:'✅ Ready to serve',served:'🍽️ Served & done'};
+  toast(msgs[status]||'Updated', `#${id} · Table ${o.table}`, status==='ready'?'green':status==='served'?'muted':'amber');
+}
+
+function cycleStatus(id) {
+  const o = orders.find(x=>x.id===id);
+  if (!o) return;
+  const flow = ['new','preparing','ready','served'];
+  const next = flow[Math.min(flow.indexOf(o.status)+1, flow.length-1)];
+  setStatus(id, next);
+}
+
+function cancelOrder(id) {
+  orders = orders.filter(o=>o.id!==id);
+  renderOrders(); renderKDS(); updateStats();
+  toast('❌ Order Cancelled', `#${id} removed`, 'danger');
+}
+
+function filterOrders(f, btn) {
+  currentFilter = f;
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderOrders();
+}
+
+function updateStats() {
+  document.getElementById('statNew').textContent = orders.filter(o=>o.status==='new').length;
+  document.getElementById('statPrep').textContent = orders.filter(o=>o.status==='preparing').length;
+  document.getElementById('statReady').textContent = orders.filter(o=>o.status==='ready').length;
+  const badge = orders.filter(o=>o.status==='new').length;
+  document.getElementById('newOrderBadge').textContent = badge;
+}
+
+// ── KDS ──
+function renderKDS() {
+  const active = orders.filter(o=>o.status!=='served');
+  document.getElementById('kdsGrid').innerHTML = active.map(o => {
+    const cls = o.status==='new'?'kds-new':o.status==='preparing'?'kds-prep':'kds-ready';
+    const mins = Math.floor((Date.now()-o.time)/60000);
+    const urgent = mins>20;
+    return `<div class="kds-card ${cls}">
+      <div class="kds-header">
+        <span>#${o.id} · Table ${o.table}</span>
+        <span class="status-pill ${o.status}" onclick="cycleStatus('${o.id}')" style="cursor:pointer">${o.status==='new'?'🆕 New':o.status==='preparing'?'🔥 Preparing':'✅ Ready'}</span>
+      </div>
+      <div class="kds-items">
+        ${o.items.map(i=>`<div class="kds-item"><span class="kds-item-name">${i.emoji} ${i.name}</span><span class="kds-qty">×${i.qty}</span></div>`).join('')}
+      </div>
+      ${o.note ? `<div style="padding:6px 14px;font-size:0.72rem;color:var(--gold);border-top:1px solid var(--border)">📝 ${o.note}</div>` : ''}
+      <div class="kds-timer ${urgent?'urgent':''}">
+        <span>${urgent?'⚠️ ':'⏱ '}${mins}m elapsed</span>
+        <button class="action-btn primary" onclick="setStatus('${o.id}','${o.status==='new'?'preparing':o.status==='preparing'?'ready':'served'}')" style="font-size:0.7rem;padding:3px 8px">
+          ${o.status==='new'?'Start':'${o.status==="preparing"?"Mark Ready":"Serve"}'}
+          ${o.status==='new'?'Start':o.status==='preparing'?'Mark Ready':'Serve'}
+        </button>
+      </div>
+    </div>`;
+  }).join('') || '<div style="padding:2rem;text-align:center;color:var(--muted)">No active orders 🎉</div>';
+}
+
+// ── Table Grid ──
+function renderTableGrid() {
+  const mini = document.getElementById('tableGrid');
+  const full = document.getElementById('fullTableGrid');
+  const statusLabel = {free:'Free',occupied:'Ordered',busy:'Preparing',ready:'Ready'};
+  const html = tables.map(t => {
+    const order = orders.find(o=>o.table===t.num && o.status!=='served');
+    const st = order ? (order.status==='new'?'occupied':order.status==='preparing'?'busy':'ready') : 'free';
+    return `<div class="table-cell ${st}">
+      <div class="table-num">${t.num}</div>
+      <div class="table-status">${statusLabel[st]}</div>
+      ${order ? `<div class="table-amt">₹${order.total}</div>` : ''}
+    </div>`;
+  }).join('');
+  if(mini) mini.innerHTML = html;
+  if(full) full.innerHTML = html;
+}
+
+// ── Revenue Charts ──
+function renderMiniRevenue() {
+  const now = new Date().getHours();
+  const recent = hourlyRevenue.slice(Math.max(0,now-7), now+1);
+  const max = Math.max(...recent,1);
+  document.getElementById('miniRevenue').innerHTML = `
+    <div style="font-size:0.72rem;color:var(--muted);margin-bottom:4px">Last 8 hours · Total ₹${hourlyRevenue.slice(0,now+1).reduce((a,b)=>a+b,0).toLocaleString()}</div>
+    <div class="chart-bars">
+      ${recent.map((v,i)=>`
+        <div class="bar-wrap">
+          <div class="bar ${i===recent.length-1?'today':''}" style="height:${Math.max(4,Math.round(v/max*70))}px" title="₹${v}"></div>
+          <div class="bar-label">${(now-recent.length+1+i)}h</div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+function renderFullRevenue() {
+  const now = new Date().getHours();
+  const max = Math.max(...hourlyRevenue,1);
+  document.getElementById('fullRevenueChart').innerHTML = `
+    <div style="font-size:0.78rem;color:var(--muted);margin-bottom:10px">Total today: <strong style="color:var(--gold)">₹${hourlyRevenue.reduce((a,b)=>a+b).toLocaleString()}</strong></div>
+    <div class="chart-bars" style="height:120px">
+      ${hourlyRevenue.map((v,i)=>`
+        <div class="bar-wrap">
+          <div class="bar ${i===now?'today':''}" style="height:${Math.max(2,Math.round(v/max*110))}px;opacity:${i>now?0.3:1}" title="₹${v}"></div>
+          <div class="bar-label" style="font-size:0.55rem">${i}h</div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+
+  document.getElementById('topItems').innerHTML = topItemsData.map((item,i)=>`
+    <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">
+      <span style="font-size:1.1rem">${item.emoji}</span>
+      <div style="flex:1">
+        <div style="font-size:0.82rem;color:var(--text)">${item.name}</div>
+        <div style="height:4px;background:var(--border);border-radius:2px;margin-top:4px">
+          <div style="height:4px;width:${Math.round(item.count/41*100)}%;background:var(--gold);border-radius:2px"></div>
+        </div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:0.78rem;color:var(--gold);font-family:'DM Mono',monospace">₹${item.rev.toLocaleString()}</div>
+        <div style="font-size:0.68rem;color:var(--muted)">${item.count} sold</div>
+      </div>
+    </div>
+  `).join('');
+
+  const maxW = Math.max(...weekRevenue);
+  document.getElementById('weekRevenue').innerHTML = `
+    <div style="font-family:'DM Mono',monospace;font-size:0.78rem;color:var(--muted);margin-bottom:10px">Week total: <strong style="color:var(--gold)">₹${weekRevenue.reduce((a,b)=>a+b).toLocaleString()}</strong></div>
+    <div class="chart-bars" style="height:100px">
+      ${weekRevenue.map((v,i)=>`
+        <div class="bar-wrap">
+          <div class="bar ${i===6?'today':''}" style="height:${Math.round(v/maxW*90)}px" title="₹${v}"></div>
+          <div class="bar-label">${weekDays[i]}</div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+// ── Tab switching ──
+function switchView(v) {
+  document.querySelectorAll('.view').forEach(el=>el.classList.remove('active'));
+  document.querySelectorAll('.view-tab').forEach(el=>el.classList.remove('active'));
+  document.getElementById('view-'+v).classList.add('active');
+  document.getElementById('tab-'+v).classList.add('active');
+  if (v==='revenue') renderFullRevenue();
+  if (v==='tables') renderTableGrid();
+  if (v==='kds') renderKDS();
+}
+
+function switchTab(v, btn) {
+  document.querySelectorAll('.nav-item').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  switchView(v);
+  const titles = {orders:'Live Orders',kds:'Kitchen Display',tables:'Table View',revenue:'Revenue Dashboard'};
+  document.getElementById('topbarTitle').textContent = titles[v]||v;
+}
+
+// ── Toast ──
+function toast(title, sub, type='gold') {
+  const icon = type==='green'?'✅':type==='danger'?'❌':type==='amber'?'🔥':'🔔';
+  const el = document.createElement('div');
+  el.className = 'toast';
+  el.innerHTML = `<div class="toast-icon">${icon}</div><div class="toast-text"><div class="toast-title">${title}</div><div class="toast-sub">${sub}</div></div><div class="toast-close" onclick="this.parentElement.remove()">✕</div>`;
+  document.getElementById('toasts').appendChild(el);
+  setTimeout(()=>el.remove(), 4000);
+}
+
+function showToast() { toast('🔔 New Order Arrived!', 'Table 4 · #SRV-1043 · ₹640'); }
+
+// ── Simulate new order ──
+let orderCounter = 1043;
+setInterval(() => {
+  if (Math.random() > 0.7) {
+    orderCounter++;
+    const tableNum = [1,4,6,8,10,11][Math.floor(Math.random()*6)];
+    const newOrder = {
+      id:`SRV-${orderCounter}`, table: tableNum, status:'new',
+      time: Date.now(),
+      items:[{emoji:'🍛',name:'Butter Chicken',qty:1},{emoji:'🫓',name:'Garlic Naan',qty:2}],
+      total: 500, note:''
+    };
+    orders.unshift(newOrder);
+    renderOrders(); renderKDS(); renderTableGrid();
+    toast(`🔔 New Order #SRV-${orderCounter}`, `Table ${tableNum} · ₹500`);
+  }
+}, 15000);
+
+// ── Init ──
+renderOrders();
+renderKDS();
+renderTableGrid();
+renderMiniRevenue();
+setInterval(renderOrders, 30000);
+</script>
+</body>
+</html>
